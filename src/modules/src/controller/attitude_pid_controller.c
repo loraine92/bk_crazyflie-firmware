@@ -42,6 +42,7 @@ static float omxFiltCutoff = ATTITUDE_ROLL_RATE_LPF_CUTOFF_FREQ;
 static float omyFiltCutoff = ATTITUDE_PITCH_RATE_LPF_CUTOFF_FREQ;
 static float omzFiltCutoff = ATTITUDE_YAW_RATE_LPF_CUTOFF_FREQ;
 static float yawMaxDelta = YAW_MAX_DELTA;
+// Hola mor
 
 static inline int16_t saturateSignedInt16(float in)
 {
@@ -53,6 +54,8 @@ static inline int16_t saturateSignedInt16(float in)
   else
     return (int16_t)in;
 }
+
+//otra modificacion mor
 
 PidObject pidRollRate = {
   .kp = PID_ROLL_RATE_KP,
