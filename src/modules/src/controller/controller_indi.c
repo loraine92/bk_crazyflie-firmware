@@ -22,7 +22,7 @@
  * Dynamic Inversion for Attitude Control of Micro Aerial Vehicles
  * http://arc.aiaa.org/doi/pdf/10.2514/1.G001490
  * 
- * otra modificaion II
+ *
  */
 
 #include "controller_indi.h"
