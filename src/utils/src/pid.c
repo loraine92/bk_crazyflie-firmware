@@ -37,6 +37,7 @@ void pidInit(PidObject* pid, const float desired, const float kp,
 {
   pid->error         = 0;
   pid->prevError     = 0;
+  pid->prevDesired   = 0;   //Colocar el valor previo deseado en cero 
   pid->integ         = 0;
   pid->deriv         = 0;
   pid->desired       = desired;
@@ -120,7 +121,7 @@ float pidUpdate(PidObject* pid, const float measured, const bool updateError)
     }
 
 
-    pid->prevError = pid->error;
+    pid->prevError = pid->error;      // actualiza el error previo
 
     return output;
 }
@@ -132,10 +133,11 @@ void pidSetIntegralLimit(PidObject* pid, const float limit) {
 
 void pidReset(PidObject* pid)
 {
-  pid->error     = 0;
+  pid->error     = 0;   
   pid->prevError = 0;
   pid->integ     = 0;
   pid->deriv     = 0;
+  pid->prevDesired = 0; //Reseteo la variable prevDesired
 }
 
 void pidSetError(PidObject* pid, const float error)
@@ -143,7 +145,7 @@ void pidSetError(PidObject* pid, const float error)
   pid->error = error;
 }
 
-void pidSetDesired(PidObject* pid, const float desired)
+void pidSetDesired(PidObject* pid, const float desired) //Actualiza el valor deseado en PidObject
 {
   pid->desired = desired;
 }

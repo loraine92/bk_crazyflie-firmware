@@ -38,6 +38,7 @@ typedef struct
 {
   float desired;      //< set point
   float error;        //< error
+  float prevDesired;  //< prev set point, SE AGREGO prevDesired para hacer la función de derivada
   float prevError;    //< previous error
   float integ;        //< integral
   float deriv;        //< derivative

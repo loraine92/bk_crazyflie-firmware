@@ -1,4 +1,4 @@
-/**
+ /**
  *    ||          ____  _ __
  * +------+      / __ )(_) /_______________ _____  ___
  * | 0xBC |     / __  / / __/ ___/ ___/ __ `/_  / / _ \
@@ -180,19 +180,29 @@ void positionControllerInit()
       this.pidVZ.pid.kff, this.pidVZ.pid.dt, POSITION_RATE, velZFiltCutoff, velZFiltEnable);
 }
 
-static float runPid(float input, struct pidAxis_s *axis, float setpoint, float dt) {
+static float runPid(float input, struct pidAxis_s *axis, float setpoint, float dt) { //En  input recibe el valor del estimador de estados
   axis->setpoint = setpoint;
-
-  pidSetDesired(&axis->pid, axis->setpoint);
-  return pidUpdate(&axis->pid, input, true);
+  pidSetDesired(&axis->pid, axis->setpoint);  //posición deseada, establece setpoint 
+  return pidUpdate(&axis->pid, input, true); //corrige el error
 }
 
-
+//----------------Función Derivada------------------------L--------------
+float dev(struct pidAxis_s *axis, float setp_body)
+{
+    float derivada = (setp_body - &axis->pid->prevDesired) / &axis->pid->dt;
+    &axis->pid->prevDesired = setp_body;
+    return derivada;
+}
+//----------------------------------------------------------L--------------
 float state_body_x, state_body_y, state_body_vx, state_body_vy;
 
 void positionController(float* thrust, attitude_t *attitude, const setpoint_t *setpoint,
                                                              const state_t *state)
 {
+  //--------------------------------------------------------
+  Axis3f input_velocity;  // estructura para guardar los valores de la entrada de velocidad en x,y
+  Axis3f segunda_derivada; // estructura para guardar los valores de la segunda derivada en x,y
+  //---------------------------------------------------------
   this.pidX.pid.outputLimit = xVelMax * velMaxOverhead;
   this.pidY.pid.outputLimit = yVelMax * velMaxOverhead;
   // The ROS landing detector will prematurely trip if
@@ -205,35 +215,49 @@ void positionController(float* thrust, attitude_t *attitude, const setpoint_t *s
   float setp_body_x = setpoint->position.x * cosyaw + setpoint->position.y * sinyaw;
   float setp_body_y = -setpoint->position.x * sinyaw + setpoint->position.y * cosyaw;
 
-  state_body_x = state->position.x * cosyaw + state->position.y * sinyaw;
-  state_body_y = -state->position.x * sinyaw + state->position.y * cosyaw;
+  state_body_x = state->position.x * cosyaw + state->position.y * sinyaw;    //estimador de estado de posición  en X
+  state_body_y = -state->position.x * sinyaw + state->position.y * cosyaw;   //estimador de estado de posición en Y
 
-  float globalvx = setpoint->velocity.x;
-  float globalvy = setpoint->velocity.y;
+  float globalvx = setpoint->velocity.x;  //Se utiliza para el modo de estabilización por velocidad
+  float globalvy = setpoint->velocity.y;  //Se utiliza para el modo de estabilización por velocidad
 
   //X, Y
   Axis3f setpoint_velocity;
-  setpoint_velocity.x = setpoint->velocity.x;
+  setpoint_velocity.x = setpoint->velocity.x;   
   setpoint_velocity.y = setpoint->velocity.y;
   setpoint_velocity.z = setpoint->velocity.z;
-  if (setpoint->mode.x == modeAbs) {
+
+  if (setpoint->mode.x == modeAbs) {                  //Modo de estabilización por posición  
+    //----------------------------------------------------------------------------------------------------------------
+    input_velocity.x = dev(&this.pidX, setp_body_x); //Se calcula la primera derivada pero luego se reemplaza el valor
+    segunda_derivada.x = dev(&this.pidX, input_velocity.x);
+    input_velocity.x = input_velocity.x - state_body_x;
+    //----------------------------------------------------------------------------------------------------------------
     setpoint_velocity.x = runPid(state_body_x, &this.pidX, setp_body_x, DT);
-  } else if (!setpoint->velocity_body) {
+  } else if (!setpoint->velocity_body) {         //Modo de estabilización por velocidad
     setpoint_velocity.x = globalvx * cosyaw + globalvy * sinyaw;
   }
   if (setpoint->mode.y == modeAbs) {
+    //--------------realiza la primera y segunda derivada para y, tambien hace la resta con el estimador---------------------------------------
+    input_velocity.y = dev(&this.pidY, setp_body_y);
+    segunda_derivada.y = dev(&this.pidY, input_velocity.y);
+    input_velocity.y = input_velocity.y - state_body_y;
+    //---------------------------------------------------------------------------------------------------------
     setpoint_velocity.y = runPid(state_body_y, &this.pidY, setp_body_y, DT);
-  } else if (!setpoint->velocity_body) {
+  } else if (!setpoint->velocity_body) {         //Modo de estabilización por velocidad
     setpoint_velocity.y = globalvy * cosyaw - globalvx * sinyaw;
   }
   if (setpoint->mode.z == modeAbs) {
     setpoint_velocity.z = runPid(state->position.z, &this.pidZ, setpoint->position.z, DT);
   }
-
-  velocityController(thrust, attitude, &setpoint_velocity, state);
+  //--------------------se cambiaron los valores de la función velocityController------------------
+  velocityController(thrust, attitude, &setpoint_velocity, input_velocity, segunda_derivada, state );
+  //-----------------------------------------------------------------------------------------------------------
 }
 
-void velocityController(float* thrust, attitude_t *attitude, const Axis3f* setpoint_velocity,
+void velocityController(float* thrust, attitude_t *attitude, const Axis3f* setpoint_velocity, 
+                                                             const Axis3f* input_velocity,
+                                                             const Axis3f* segunda_derivada,
                                                              const state_t *state)
 {
   this.pidVX.pid.outputLimit = pLimit * rpLimitOverhead;
@@ -242,14 +266,14 @@ void velocityController(float* thrust, attitude_t *attitude, const Axis3f* setpo
   this.pidVZ.pid.outputLimit = (UINT16_MAX / 2 / thrustScale);
   //this.pidVZ.pid.outputLimit = (this.thrustBase - this.thrustMin) / thrustScale;
 
-  float cosyaw = cosf(state->attitude.yaw * (float)M_PI / 180.0f);
-  float sinyaw = sinf(state->attitude.yaw * (float)M_PI / 180.0f);
-  state_body_vx = state->velocity.x * cosyaw + state->velocity.y * sinyaw;
-  state_body_vy = -state->velocity.x * sinyaw + state->velocity.y * cosyaw;
+  float cosyaw = cosf(state->attitude.yaw * (float)M_PI / 180.0f); //Calcula la orientación
+  float sinyaw = sinf(state->attitude.yaw * (float)M_PI / 180.0f); //Calcula la orientación
+  state_body_vx = state->velocity.x * cosyaw + state->velocity.y * sinyaw;  //estimador de estado de velocidad  en X
+  state_body_vy = -state->velocity.x * sinyaw + state->velocity.y * cosyaw;  //estimador de estado de velocidad  en Y
 
   // Roll and Pitch
-  attitude->pitch = -runPid(state_body_vx, &this.pidVX, setpoint_velocity->x, DT);
-  attitude->roll = -runPid(state_body_vy, &this.pidVY, setpoint_velocity->y, DT);
+  attitude->pitch = (-runPid(state_body_vx, &this.pidVX, input_velocity->x, DT)) + setpoint_velocity->x + segunda_derivada->x;
+  attitude->roll = (-runPid(state_body_vy, &this.pidVY, input_velocity->y, DT)) + setpoint_velocity->y + segunda_derivada->y;
 
   attitude->roll  = constrain(attitude->roll,  -rLimit, rLimit);
   attitude->pitch = constrain(attitude->pitch, -pLimit, pLimit);
@@ -264,6 +288,12 @@ void velocityController(float* thrust, attitude_t *attitude, const Axis3f* setpo
   }
     // saturate
   *thrust = constrain(*thrust, 0, UINT16_MAX);
+  // //-----Reseteo de input_velocity y de segunda_derivada en X,Y----
+  // input_velocity.x = 0;
+  // segunda_derivada.x = 0;
+  // input_velocity.y = 0;
+  // segunda_derivada.y = 0;
+  // //------------------------------------------------------
 }
 
 void positionControllerResetAllPID()

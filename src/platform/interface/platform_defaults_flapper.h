@@ -78,17 +78,17 @@
 #define PID_YAW_KD  1.0
 #define PID_YAW_KFF 0.0
 #define PID_YAW_INTEGRATION_LIMIT     360.0
+//-------- modificación de los valores de kp, ki y kd para los controladores de velocidad en X,Y-----
+#define PID_VEL_X_KP     0.25f         //25.0f
+#define PID_VEL_X_KI     0.1f          //1.0f
+#define PID_VEL_X_KD     0.1f          //0.0f
+#define PID_VEL_X_KFF    10.0f         //??
 
-#define PID_VEL_X_KP 25.0f
-#define PID_VEL_X_KI 1.0f
-#define PID_VEL_X_KD 0.0f
-#define PID_VEL_X_KFF 10.0f
-
-#define PID_VEL_Y_KP 15.0f
-#define PID_VEL_Y_KI 1.0f
-#define PID_VEL_Y_KD 0.0f
-#define PID_VEL_Y_KFF 5.0f
-
+#define PID_VEL_Y_KP     0.25f         //15.0f
+#define PID_VEL_Y_KI     0.1f          //1.0f
+#define PID_VEL_Y_KD     0.1f          //0.0f
+#define PID_VEL_Y_KFF    5.0f          //??
+//-------------------------------------------------------------
 #define PID_VEL_Z_KP 12.5f
 #define PID_VEL_Z_KI 0.5f
 #define PID_VEL_Z_KD 0.0f
@@ -104,17 +104,17 @@
 #define PID_VEL_THRUST_BASE 40000.0f
 #define PID_VEL_THRUST_BASE_BARO_Z_HOLD 40000.0f
 #define PID_VEL_THRUST_MIN 20000.0f
+//-------------modificación de los valores de kp, ki y kd para los controladores de posición en X,Y--------------
+#define PID_POS_X_KP      0.4f       //1.5f
+#define PID_POS_X_KI      0.1f       //0.0f
+#define PID_POS_X_KD      0.1f       //0.0f
+#define PID_POS_X_KFF     0.0f
 
-#define PID_POS_X_KP 1.5f
-#define PID_POS_X_KI 0.0f
-#define PID_POS_X_KD 0.0f
-#define PID_POS_X_KFF 0.0f
-
-#define PID_POS_Y_KP 1.5f
-#define PID_POS_Y_KI 0.0f
-#define PID_POS_Y_KD 0.0f
-#define PID_POS_Y_KFF 0.0f
-
+#define PID_POS_Y_KP      0.4f       //1.5f
+#define PID_POS_Y_KI      0.1f       //0.0f
+#define PID_POS_Y_KD      0.1f       //0.0f
+#define PID_POS_Y_KFF     0.0f
+//--------------------------------------------------
 #define PID_POS_Z_KP 5.0f
 #define PID_POS_Z_KI 0.5f
 #define PID_POS_Z_KD 0.0f
